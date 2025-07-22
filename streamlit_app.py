@@ -4,7 +4,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 st.set_page_config(page_title="Crypto FIRE Calculator", layout="centered")
-st.title("Crypto FIRE Calculator — FIRE Number and Forecasts with FIRE Year Calculation")
+st.title("Crypto FIRE Calculator")
+
+# --- Add this at the top after .title() or wherever you want a FIRE-style banner ---
+
+st.markdown(
+    """
+    <div style="display: flex; align-items: center; justify-content: center; font-size:3em; gap:18px; margin-top:10px; margin-bottom:10px;">
+        <span>🔥</span>
+        <span>Crypto FIRE Journey</span>
+        <span>🔥</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; font-size:1.6em; gap:16px;">
+        <span>🏕️</span>
+        <span>Retire Early • Burn Bright • Slay Risk</span>
+        <span>🐉</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 st.write(
     """
