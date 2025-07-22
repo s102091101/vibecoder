@@ -11,14 +11,14 @@ st.title("Crypto FIRE Calculator")
 st.markdown(
     """
     <div style="display: flex; align-items: center; justify-content: center; font-size:3em; gap:18px; margin-top:10px; margin-bottom:10px;">
-        <span>🔥</span>
+        <span>:fire:</span>
         <span>Crypto FIRE Journey</span>
-        <span>🔥</span>
+        <span>:fire:</span>
     </div>
     <div style="display: flex; align-items: center; justify-content: center; font-size:1.6em; gap:16px;">
-        <span>🏕️</span>
+        <span>:fire:</span>
         <span>Retire Early • Burn Bright • Slay Risk</span>
-        <span>🐉</span>
+        <span>:fire:</span>
     </div>
     """,
     unsafe_allow_html=True
