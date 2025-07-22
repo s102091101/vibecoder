@@ -197,4 +197,26 @@ if st.button("Calculate FIRE Scenarios"):
     st.subheader("Net Monthly FIRE Income vs. Required Target")
     x_labels = df["Scenario"] + " (" + df["Year"].astype(str) + ")"
     x = np.arange(len(x_labels))
-    fig, ax = plt.subplots(figsize=(11,
+    fig, ax = plt.subplots(figsize=(11, 6))
+    ax.bar(x, df["Net Monthly (€)"], color="blue")
+    ax.axhline(fire_monthly_requirement, color="red", linestyle="--", linewidth=2,
+               label=f"Required Monthly FIRE Income: €{fire_monthly_requirement:,.0f}")
+    ax.set_xticks(x)
+    ax.set_xticklabels(x_labels, rotation=45, ha="right")
+    ax.set_ylabel("Net Monthly FIRE Income (€)")
+    ax.set_title("FIRE Income by Scenario with Target Threshold")
+    ax.legend()
+    plt.tight_layout()
+    st.pyplot(fig)
+
+st.markdown("""
+---
+This tool compares your projected FIRE retirement income to your actual target, calculated using your weekly expenses.
+
+- FIRE Number is calculated as your annual expenses × 25.
+- The required monthly FIRE income is your annual expenses ÷ 12.
+- Results are shown for your selected retirement year and again a decade after.
+- All forecasts include Irish capital gains tax (33%) on withdrawals and dynamically adjust expected crypto prices to your target year.
+- The FIRE year table shows when (if at all) each scenario's net worth will pass your minimum FIRE threshold.
+- Figures are for planning; consult a financial professional for definitive advice.
+""")
