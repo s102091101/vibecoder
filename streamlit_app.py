@@ -1,13 +1,16 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 st.set_page_config(page_title="Crypto FIRE Calculator", layout="centered")
-st.title("🚀 Crypto FIRE Calculator — With Traditional & Crypto Scenario Projections")
+st.title("🚀 Crypto FIRE Calculator — Dynamic Retirement & 10-Year Projections")
 
-st.write("Enter your cryptocurrency portfolio and see your potential FIRE income in 2040 under traditional and crypto-specific forecast scenarios. Includes Irish Capital Gains Tax (CGT) on withdrawals.")
+st.write(
+    "Estimate your crypto retirement income under both traditional asset and crypto-specific forecast scenarios, for your retirement year and 10 years later. All FIRE net figures account for Irish Capital Gains Tax."
+)
 
-st.header("User Information")
+st.header("User Input")
 col1, col2 = st.columns(2)
 with col1:
     age = st.number_input("Your Current Age", min_value=18, max_value=100, value=40, step=1)
@@ -30,109 +33,138 @@ units_held = {
     "LTC": ltc_units
 }
 
-st.header("Optional: Add Additional Euro Savings")
+st.header("Optional: Additional Euro Savings")
 euro_balance = st.number_input("Traditional EUR Savings (Optional)", min_value=0.0, value=0.0, step=1000.0)
 
 withdrawal_rate = 0.04
 cgt_rate = 0.33
 current_year = 2025
 
-traditional_growth = 0.06  # Treats whole portfolio as traditional mixed asset growth
+traditional_growth = 0.06  # 6% per year compounding for traditional scenario
 
-# Crypto price scenarios (USD, 2040 forecasted)
 crypto_prices_2040 = {
     "Conservative": {"BTC": 247794, "ETH": 4592, "XRP": 76, "LTC": 237},
     "Moderate":     {"BTC": 850000, "ETH": 92704, "XRP": 100, "LTC": 926},
     "Optimistic":   {"BTC": 2320693, "ETH": 117501, "XRP": 1456, "LTC": 2955}
 }
 
-years = retire_year - current_year
+# Estimate present crypto value in euro for traditional scenario
+dummy_prices_now = {"BTC": 65000, "ETH": 3500, "XRP": 0.50, "LTC": 80}
+total_crypto_value_now = sum(units_held[c] * dummy_prices_now[c] for c in units_held)
+full_balance_now = total_crypto_value_now + euro_balance
+
+years_to_retire = retire_year - current_year
+years_10_later = years_to_retire + 10
 
 if st.button("Calculate FIRE Scenarios"):
-    if years < 0:
+    if years_to_retire < 0:
         st.error("Please choose a retirement year in the future.")
     else:
-        st.subheader(f"Results for Retirement in {retire_year} (Age {age + years})")
+        st.subheader(f"Results: Retirement in {retire_year} (Age {age + years_to_retire})")
+        st.subheader(f"Projection 10 Years After FIRE: {retire_year + 10} (Age {age + years_10_later})")
 
-        results = []
+        def calc_fi(balance, yrs):
+            pf = balance * ((1 + traditional_growth) ** yrs)
+            gross = pf * withdrawal_rate
+            net = gross * (1 - cgt_rate)
+            return pf, gross, net, net / 12
 
-        # Traditional asset growth scenario
-        total_crypto_value_now = 0  # Give users the chance to leave some coins blank
-        # Use dummy values from price APIs or a benchmark if needed
+        trad_pf, trad_gross, trad_net, trad_monthly = calc_fi(full_balance_now, years_to_retire)
+        trad10_pf, trad10_gross, trad10_net, trad10_monthly = calc_fi(trad_pf, 10)
 
-        # Estimate total euro value now for crypto balance
-        dummy_prices_now = {"BTC": 65000, "ETH": 3500, "XRP": 0.50, "LTC": 80}
-        for coin, units in units_held.items():
-            total_crypto_value_now += units * dummy_prices_now[coin]
+        def crypto_port_eur(units, scenario):
+            usd = sum(units[c] * crypto_prices_2040[scenario][c] for c in units)
+            return usd * 0.86  # USD to EUR
 
-        full_balance_now = total_crypto_value_now + euro_balance
-        trad_portfolio = full_balance_now * ((1 + traditional_growth) ** years)
-        trad_gross = trad_portfolio * withdrawal_rate
-        trad_net = trad_gross * (1 - cgt_rate)
-
-        results.append({
+        scenarios = []
+        # Traditional scenario — retirement year
+        scenarios.append({
             "Scenario": "Traditional Asset Growth (6%/yr)",
-            "Portfolio at Retirement (€)": trad_portfolio,
-            "Gross Yearly FIRE (€)": trad_gross,
+            "Year": retire_year,
+            "Portfolio (€)": trad_pf,
             "Net Yearly FIRE (€)": trad_net,
-            "Net Monthly FIRE (€)": trad_net / 12,
-            "Age at FIRE": age + years
+            "Net Monthly FIRE (€)": trad_monthly,
+            "Age": age + years_to_retire
+        })
+        # Traditional scenario — 10 years later
+        scenarios.append({
+            "Scenario": "Traditional Asset Growth (6%/yr)",
+            "Year": retire_year + 10,
+            "Portfolio (€)": trad10_pf,
+            "Net Yearly FIRE (€)": trad10_net,
+            "Net Monthly FIRE (€)": trad10_monthly,
+            "Age": age + years_10_later
         })
 
-        # Loop through crypto-defined scenarios
-        for name, prices in crypto_prices_2040.items():
-            usd_total = sum(units_held[coin] * prices[coin] for coin in units_held)
-            eur_total = usd_total * 0.86  # Convert USD → EUR
-            fire_gross = eur_total * withdrawal_rate
-            fire_net = fire_gross * (1 - cgt_rate)
-
-            results.append({
-                "Scenario": f"Crypto {name} Scenario",
-                "Portfolio at Retirement (€)": eur_total,
-                "Gross Yearly FIRE (€)": fire_gross,
-                "Net Yearly FIRE (€)": fire_net,
-                "Net Monthly FIRE (€)": fire_net / 12,
-                "Age at FIRE": age + years
+        # Crypto scenarios — retirement year and 10 years later
+        for label in ["Conservative", "Moderate", "Optimistic"]:
+            val_eur = crypto_port_eur(units_held, label)
+            gross = val_eur * withdrawal_rate
+            net = gross * (1 - cgt_rate)
+            # At retirement
+            scenarios.append({
+                "Scenario": f"Crypto {label}",
+                "Year": retire_year,
+                "Portfolio (€)": val_eur,
+                "Net Yearly FIRE (€)": net,
+                "Net Monthly FIRE (€)": net / 12,
+                "Age": age + years_to_retire
+            })
+            # 10 years after retirement (with traditional growth assumption post-retirement)
+            val_eur_10 = val_eur * ((1 + traditional_growth) ** 10)
+            gross10 = val_eur_10 * withdrawal_rate
+            net10 = gross10 * (1 - cgt_rate)
+            scenarios.append({
+                "Scenario": f"Crypto {label}",
+                "Year": retire_year + 10,
+                "Portfolio (€)": val_eur_10,
+                "Net Yearly FIRE (€)": net10,
+                "Net Monthly FIRE (€)": net10 / 12,
+                "Age": age + years_10_later
             })
 
-        df = pd.DataFrame(results)
-        df_display = df.copy()
-        for col in [
-            "Portfolio at Retirement (€)",
-            "Gross Yearly FIRE (€)",
-            "Net Yearly FIRE (€)",
-            "Net Monthly FIRE (€)"
-        ]:
-            df_display[col] = df_display[col].apply(lambda x: f"€{x:,.0f}")
-        st.table(df_display.set_index("Scenario"))
+        df = pd.DataFrame(scenarios)
+        df_formatted = df.copy()
+        showcols = ["Portfolio (€)", "Net Yearly FIRE (€)", "Net Monthly FIRE (€)"]
+        for col in showcols:
+            df_formatted[col] = df_formatted[col].apply(lambda x: f"€{x:,.0f}")
+        st.table(df_formatted.set_index(["Scenario", "Year"]))
 
-        # 🎯 Visualization
-        fig, ax = plt.subplots(figsize=(10, 6))
-        x = range(len(df))
-        bar1 = ax.bar(x, df["Portfolio at Retirement (€)"], width=0.4, label="Portfolio (€)")
-        bar2 = ax.bar([i + 0.4 for i in x], df["Net Monthly FIRE (€)"], width=0.4, label="Net Monthly FIRE (€)", color="orange")
-
-        ax.set_xticks([i + 0.2 for i in x])
-        ax.set_xticklabels(df["Scenario"], rotation=45, ha="right")
+        # Visualization
+        fig, ax = plt.subplots(figsize=(12, 6))
+        groups = df["Scenario"].unique()
+        years = sorted(df["Year"].unique())
+        width = 0.35
+        x = np.arange(len(groups))
+        # Plot portfolio and net monthly side-by-side for each year
+        for i, yr in enumerate(years):
+            dx = (i - 0.5) * width
+            vals = df[df["Year"] == yr]["Portfolio (€)"]
+            ax.bar(x + dx, vals, width=width, label=f"Portfolio {yr}" if i == 0 else "")
+            vals_income = df[df["Year"] == yr]["Net Monthly FIRE (€)"]
+            ax.bar(x + dx, vals_income, width=width, label=f"Net Monthly FIRE {yr}" if i == 1 else "", alpha=0.5)
+        ax.set_xticks(x)
+        ax.set_xticklabels(groups, rotation=45, ha="right")
         ax.set_ylabel("Euro (€)")
-        ax.set_title("2040 Portfolio vs Monthly Net FIRE Income")
-        ax.legend()
+        ax.set_title("Portfolio Value and Net Monthly FIRE Income: Retirement Year vs. 10 Years Later")
+        ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        plt.tight_layout()
         st.pyplot(fig)
 
 st.markdown("""
 ---
-### 🔎 About the Scenarios
+### Scenario Definitions
 
-- **Traditional Asset Growth:** Your crypto is treated like stocks/bonds with 6% annual return.
-- **Crypto Conservative:** Crypto grows slowly; modest 2040 BTC/XRP/ETH projections.
-- **Crypto Moderate:** Based on widely published mid-range 2040 forecasts.
-- **Crypto Optimistic:** Assumes crypto hits full global adoption; top of forecast range.
+- **Traditional Asset Growth (6%/yr):**
+  - Treats your entire portfolio as if invested in a steady global index fund (6% per year).
+- **Crypto Conservative:**
+  - Uses cautious 2040 analyst forecasts for BTC, ETH, XRP, and LTC prices.
+- **Crypto Moderate:**
+  - Uses widely published consensus mid-range 2040 coin price predictions.
+- **Crypto Optimistic:**
+  - Uses published upper-end, bullish 2040 crypto forecasts.
 
-**Calculations:**
-- Assumes 4% annual FIRE withdrawals.
-- Irish CGT (33%) applied to all capital gains withdrawals.
-- Prices and forecasts from major analysts as of 2025.
-
-> *Disclaimer: This is an educational tool. Not financial advice.*
+All net figures reflect 4% FIRE withdrawals minus 33% Irish CGT, using 2025 forecast prices and rates. This tool is for education only, not advice.
 """)
+
 
