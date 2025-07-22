@@ -25,10 +25,10 @@ st.markdown(
 )
 
 st.image("fire.png", width=60)
-st.image("firebtc.png", width=60)
-st.image("fireltc.png", width=60)
-st.image("fireeth.png", width=60)
-st.image("firexrp.png", width=60)
+#st.image("firebtc.png", width=60)
+#st.image("fireltc.png", width=60)
+#st.image("fireeth.png", width=60)
+#st.image("firexrp.png", width=60)
 
 st.write(
     """
