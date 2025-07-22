@@ -24,11 +24,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.image("fire.png", width=60)
-#st.image("firebtc.png", width=60)
-#st.image("fireltc.png", width=60)
-#st.image("fireeth.png", width=60)
-#st.image("firexrp.png", width=60)
+image_files = [
+    "fire.png",
+    "firebtc.png",
+    "fireltc.png",
+    "fireeth.png",
+    "firexrp.png"
+]
+
+columns = st.columns(len(image_files))
+for col, image_file in zip(columns, image_files):
+    with col:
+        st.image(image_file, width=60)
 
 st.write(
     """
