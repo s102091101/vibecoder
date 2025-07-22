@@ -162,25 +162,46 @@ if st.button("Calculate FIRE Scenarios"):
 
     df = pd.DataFrame(results)
 
-    # Calculate FIRE year per scenario (from projected retirement portfolio onwards, growing at 6%/yr)
+    # Calculate the first year FIRE number is reached for each scenario, starting from current year and portfolio
     st.subheader("Year You Reach Your FIRE Target")
     fire_results = []
-    unique_scenarios = list(set(df["Scenario"]))
-    for scenario in unique_scenarios:
-        scenario_rows = df[df["Scenario"] == scenario].sort_values("Year")
-        start_row = scenario_rows.iloc[0]
+    # For initial values, base each scenario on 2025/now, with scenario-specific annual growth rate
+    # Use traditional growth (6%) for 'Traditional', compound required percentage from current_prices for each 'Crypto' scenario
+    scenario_growth_rates = {
+        "Traditional (6%)": trad_growth,
+    }
+
+    for label, prices_2040 in forecast_prices_2040.items():
+        # Calculate the average compound growth rate across coins for that scenario
+        rates = []
+        for coin in units_held:
+            price_2040 = prices_2040[coin]
+            price_now = current_prices[coin]
+            r = (price_2040 / price_now) ** (1 / (2040-2025)) - 1
+            rates.append(r)
+        avg_rate = np.mean(rates)
+        scenario_growth_rates[f"{label} Crypto"] = avg_rate
+
+    scenario_initials = {
+        "Traditional (6%)": full_balance_now,
+    }
+    for label, prices_2040 in forecast_prices_2040.items():
+        value_now = sum(units_held[c] * current_prices[c] for c in units_held) * conversion_rate + eur_savings
+        scenario_initials[f"{label} Crypto"] = value_now
+
+    for scenario, growth in scenario_growth_rates.items():
         fire_year, fire_age = calculate_fire_year(
-            start_value=start_row["Portfolio (€)"],
-            growth_rate=trad_growth,
+            start_value=scenario_initials[scenario],
+            growth_rate=growth,
             fire_target=fire_number,
-            start_year=int(start_row["Year"]),
-            start_age=int(start_row["Age"])
+            start_year=current_year,
+            start_age=age
         )
         fire_results.append({
             "Scenario": scenario,
-            "Starting Year": int(start_row["Year"]),
-            "FIRE Year": fire_year if fire_year else "Not reached",
-            "Age at FIRE": fire_age if fire_age else "N/A"
+            "FIRE Attained Year": fire_year if fire_year else "Not reached",
+            "Age at FIRE": fire_age if fire_age else "N/A",
+            "Starting Year": current_year
         })
 
     fire_df = pd.DataFrame(fire_results)
@@ -217,6 +238,6 @@ This tool compares your projected FIRE retirement income to your actual target, 
 - The required monthly FIRE income is your annual expenses ÷ 12.
 - Results are shown for your selected retirement year and again a decade after.
 - All forecasts include Irish capital gains tax (33%) on withdrawals and dynamically adjust expected crypto prices to your target year.
-- The FIRE year table shows when (if at all) each scenario's net worth will pass your minimum FIRE threshold.
+- The FIRE year table shows when (if at all) each scenario's net worth will pass your minimum FIRE threshold (starting from 2025).
 - Figures are for planning; consult a financial professional for definitive advice.
 """)
