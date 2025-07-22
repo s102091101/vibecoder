@@ -12,18 +12,19 @@ st.markdown(
     """
     <div style="display: flex; align-items: center; justify-content: center; font-size:3em; gap:18px; margin-top:10px; margin-bottom:10px;">
 
-        <span>Crypto FIRE Journey</span>
+        Crypto FIRE Journey
     
     </div>
     <div style="display: flex; align-items: center; justify-content: center; font-size:1.6em; gap:16px;">
        
-        <span>Retire Early • Burn Bright • Slay Risk</span>
+       Retire Early • Burn Bright • Slay Risk
    
     </div>
     """,
     unsafe_allow_html=True
 )
 
+st.image("fire.png", width=60)
 
 st.write(
     """
