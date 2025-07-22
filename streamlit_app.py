@@ -24,6 +24,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# --- Insert themed images ---
 image_files = [
     "fire.png",
     "firebtc.png",
@@ -33,20 +34,26 @@ image_files = [
 ]
 
 columns = st.columns(len(image_files))
-for col, image_file in zip(columns, image_files):
+for idx, (col, img) in enumerate(zip(columns, image_files)):
     with col:
-        st.image(image_file, width=60)
+        if img == "fire.png":
+            st.image(img, width=65, caption="General FIRE")
+        elif img == "firebtc.png":
+            st.image(img, width=65, caption="Bitcoin FIRE")
+        elif img == "fireltc.png":
+            st.image(img, width=65, caption="Litecoin FIRE")
+        elif img == "fireeth.png":
+            st.image(img, width=65, caption="Ethereum FIRE")
+        elif img == "firexrp.png":
+            st.image(img, width=65, caption="XRP FIRE")
 
-st.write(
-    """
-    This calculator estimates your crypto retirement income using dynamic growth models,
-    compared to your personal FIRE target. All figures forecast your portfolio and net withdrawal
-    for your selected retirement year and ten years later, including Irish CGT (33%).
-    The calculation also determines for each scenario the first year and age you will reach your FIRE number.
-    """
-)
+st.write("""
+Estimate your crypto retirement income using dynamic growth models, compared with your personal FIRE target.
+This tool now includes advanced Bitcoin valuation signals: Stock-to-Flow (S2F), Rainbow Chart, and Pi Cycle Top.
+All results forecast your portfolio and net withdrawal for your selected retirement year and ten years later, including Irish CGT (33%).
+""")
 
-# User inputs: Age, retirement year
+# User inputs
 st.header("Basic Information and Spending")
 col1, col2 = st.columns(2)
 with col1:
@@ -54,7 +61,6 @@ with col1:
 with col2:
     retire_year = st.number_input("Target Retirement Year", min_value=2025, max_value=2100, value=2035)
 
-# Weekly spending input
 st.header("Weekly Spending")
 weekly_exp = st.number_input(
     "Weekly Expenditure (€)",
@@ -73,7 +79,7 @@ st.markdown(f"""
 **Required Net Monthly FIRE Income:** €{fire_monthly_requirement:,.0f}
 """)
 
-# Portfolio entry
+# Portfolio
 st.header("Portfolio Holdings")
 col1, col2 = st.columns(2)
 with col1:
@@ -193,17 +199,13 @@ if st.button("Calculate FIRE Scenarios"):
 
     df = pd.DataFrame(results)
 
-    # Calculate the first year FIRE number is reached for each scenario, starting from current year and portfolio
+    # Calculate FIRE year (from current year/balance, not just retirement)
     st.subheader("Year You Reach Your FIRE Target")
     fire_results = []
-    # For initial values, base each scenario on 2025/now, with scenario-specific annual growth rate
-    # Use traditional growth (6%) for 'Traditional', compound required percentage from current_prices for each 'Crypto' scenario
     scenario_growth_rates = {
         "Traditional (6%)": trad_growth,
     }
-
     for label, prices_2040 in forecast_prices_2040.items():
-        # Calculate the average compound growth rate across coins for that scenario
         rates = []
         for coin in units_held:
             price_2040 = prices_2040[coin]
@@ -245,7 +247,7 @@ if st.button("Calculate FIRE Scenarios"):
     st.subheader("Results Table")
     st.table(df_fmt.set_index(["Scenario", "Year"]))
 
-    # Visual
+    # Visual: Net Monthly FIRE Income against FIRE requirement
     st.subheader("Net Monthly FIRE Income vs. Required Target")
     x_labels = df["Scenario"] + " (" + df["Year"].astype(str) + ")"
     x = np.arange(len(x_labels))
@@ -261,14 +263,39 @@ if st.button("Calculate FIRE Scenarios"):
     plt.tight_layout()
     st.pyplot(fig)
 
+# --- Bitcoin Signal Analysis Section ---
+st.header("Advanced Bitcoin Valuation Models")
+
+st.subheader("Stock-to-Flow Model (S2F)")
+st.write("""
+The Stock-to-Flow model estimates Bitcoin's value based on scarcity — the ratio of existing supply to new supply mined annually.
+It historically provides price zones for market cycles and helps indicate undervaluation or overvaluation relative to stock availability.
+""")
+
+st.subheader("Rainbow Chart")
+st.write("""
+The Rainbow Chart uses a logarithmic regression band to show historical BTC price zones from 'fire sale' to 'maximum bubble'.
+It gives context on whether current prices are below or above historical norms.
+""")
+
+st.subheader("Pi Cycle Top Indicator")
+st.write("""
+The Pi Cycle Top is an on-chain indicator combining two moving averages that historically signals Bitcoin market cycle tops.
+It warns of likely bear markets following market peaks.
+""")
+
+# --- PDF export guidance ---
+
+st.header("Export Your Report to PDF")
+
+st.write("""
+To save your results and charts:  
+- Use your browser's “Print to PDF” function, or press “Ctrl+P” / “Cmd+P” while your results are displayed to save a full summary of your FIRE planning report, tables, charts, and Bitcoin signal notes.
+- For optimal PDF appearance, hide Streamlit sidebar and use a modern browser.
+""")
+
 st.markdown("""
 ---
-This tool compares your projected FIRE retirement income to your actual target, calculated using your weekly expenses.
-
-- FIRE Number is calculated as your annual expenses × 25.
-- The required monthly FIRE income is your annual expenses ÷ 12.
-- Results are shown for your selected retirement year and again a decade after.
-- All forecasts include Irish capital gains tax (33%) on withdrawals and dynamically adjust expected crypto prices to your target year.
-- The FIRE year table shows when (if at all) each scenario's net worth will pass your minimum FIRE threshold (starting from 2025).
-- Figures are for planning; consult a financial professional for definitive advice.
+This app combines dynamic crypto and traditional asset scenario planning, advanced Bitcoin signals, and clear FIRE milestone tracking.  
+Results are for planning and illustration purposes—always review major financial decisions with qualified advisors.
 """)
