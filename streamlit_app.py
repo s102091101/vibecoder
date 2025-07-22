@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 st.set_page_config(page_title="Crypto FIRE Calculator", layout="centered")
-st.title("Crypto FIRE Calculator — FIRE Number and Forecasts")
+st.title("Crypto FIRE Calculator — FIRE Number and Forecasts with FIRE Year Calculation")
 
 st.write(
     """
     This calculator estimates your crypto retirement income using dynamic growth models,
     compared to your personal FIRE target. All figures forecast your portfolio and net withdrawal
     for your selected retirement year and ten years later, including Irish CGT (33%).
+    The calculation also determines for each scenario the first year and age you will reach your FIRE number.
     """
 )
 
@@ -94,6 +95,18 @@ def compute_trad_projection(value, years):
     income = final * withdrawal_rate * (1 - cgt_rate)
     return final, income
 
+def calculate_fire_year(start_value, growth_rate, fire_target, start_year, start_age):
+    year = start_year
+    age = start_age
+    value = start_value
+    while year <= 2100:
+        if value >= fire_target:
+            return year, age
+        value *= (1 + growth_rate)
+        year += 1
+        age += 1
+    return None, None
+
 if st.button("Calculate FIRE Scenarios"):
     results = []
     current_value = sum(units_held[c] * current_prices[c] for c in units_held)
@@ -148,6 +161,32 @@ if st.button("Calculate FIRE Scenarios"):
         })
 
     df = pd.DataFrame(results)
+
+    # Calculate FIRE year per scenario (from projected retirement portfolio onwards, growing at 6%/yr)
+    st.subheader("Year You Reach Your FIRE Target")
+    fire_results = []
+    unique_scenarios = list(set(df["Scenario"]))
+    for scenario in unique_scenarios:
+        scenario_rows = df[df["Scenario"] == scenario].sort_values("Year")
+        start_row = scenario_rows.iloc[0]
+        fire_year, fire_age = calculate_fire_year(
+            start_value=start_row["Portfolio (€)"],
+            growth_rate=trad_growth,
+            fire_target=fire_number,
+            start_year=int(start_row["Year"]),
+            start_age=int(start_row["Age"])
+        )
+        fire_results.append({
+            "Scenario": scenario,
+            "Starting Year": int(start_row["Year"]),
+            "FIRE Year": fire_year if fire_year else "Not reached",
+            "Age at FIRE": fire_age if fire_age else "N/A"
+        })
+
+    fire_df = pd.DataFrame(fire_results)
+    st.table(fire_df.set_index("Scenario"))
+
+    # Format for table
     df_fmt = df.copy()
     for col in ["Portfolio (€)", "Net FIRE Income (€)", "Net Monthly (€)"]:
         df_fmt[col] = df_fmt[col].apply(lambda x: f"€{x:,.0f}")
@@ -158,25 +197,4 @@ if st.button("Calculate FIRE Scenarios"):
     st.subheader("Net Monthly FIRE Income vs. Required Target")
     x_labels = df["Scenario"] + " (" + df["Year"].astype(str) + ")"
     x = np.arange(len(x_labels))
-    fig, ax = plt.subplots(figsize=(11, 6))
-    ax.bar(x, df["Net Monthly (€)"], color="blue")
-    ax.axhline(fire_monthly_requirement, color="red", linestyle="--", linewidth=2,
-               label=f"Required Monthly FIRE Income: €{fire_monthly_requirement:,.0f}")
-    ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, rotation=45, ha="right")
-    ax.set_ylabel("Net Monthly FIRE Income (€)")
-    ax.set_title("FIRE Income by Scenario with Target Threshold")
-    ax.legend()
-    plt.tight_layout()
-    st.pyplot(fig)
-
-st.markdown("""
----
-This tool compares your projected FIRE retirement income to your actual target, calculated using your weekly expenses.
-
-- FIRE Number is calculated as your annual expenses × 25.
-- The required monthly FIRE income is your annual expenses ÷ 12.
-- Results are shown for your selected retirement year and again a decade after.
-- All forecasts include Irish capital gains tax (33%) on withdrawals and dynamically adjust expected crypto prices to your target year.
-- Figures are for planning; consult a financial professional for definitive advice.
-""")
+    fig, ax = plt.subplots(figsize=(11,
